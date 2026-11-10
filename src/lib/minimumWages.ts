@@ -122,3 +122,4 @@ export const STATUTORY_MINIMUM_WAGES: MinimumWageRecord[] = [
     ],
   },
 ];
+

@@ -43,6 +43,7 @@ export default function GrievanceTracker() {
   const [urgency, setUrgency] = useState('HIGH');
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [selectedGrievanceForLetter, setSelectedGrievanceForLetter] = useState<Grievance | null>(null);
 
   const fetchGrievances = async (phoneFilter?: string) => {
     setLoading(true);
@@ -358,9 +359,15 @@ export default function GrievanceTracker() {
                       {g.description}
                     </p>
 
-                    <div className="text-[10px] text-slate-400 flex justify-between pt-1 border-t border-slate-100">
+                    <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-100">
                       <span>श्रमिक: {g.workerName} ({g.workerPhone})</span>
-                      <span>{new Date(g.createdAt).toLocaleDateString('hi-IN')}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedGrievanceForLetter(g)}
+                        className="text-red-700 hover:text-red-900 font-bold underline ml-1"
+                      >
+                        कानूनी शिकायत पत्र (Notice)
+                      </button>
                     </div>
 
                     {g.resolutionNotes && (
@@ -376,6 +383,100 @@ export default function GrievanceTracker() {
           </div>
         </div>
       </div>
+
+      {/* Formal Legal Complaint Notice Modal */}
+      {selectedGrievanceForLetter && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 border border-slate-300 text-slate-900 my-8">
+            <div className="border-b pb-3 flex items-center justify-between">
+              <div>
+                <h3 className="font-black text-base text-slate-900">
+                  औपचारिक कानूनी शिकायत आवेदन (Formal Legal Complaint Notice)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  वेतन संहिता 2019 एवं औद्योगिक संबंध संहिता 2020 के अंतर्गत
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedGrievanceForLetter(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-lg p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Letter Content */}
+            <div className="mt-4 p-5 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-3 font-serif leading-relaxed text-slate-800">
+              <div className="text-right font-mono text-[11px] text-slate-500">
+                दिनांक: {new Date(selectedGrievanceForLetter.createdAt).toLocaleDateString('hi-IN')}
+              </div>
+
+              <div>
+                <strong>सेवा में,</strong><br />
+                श्रीमान सहायक श्रमायुक्त (Assistant Labour Commissioner),<br />
+                श्रम विभाग, {selectedGrievanceForLetter.workplaceLocation || 'संबंधित जिला कार्यालय'}
+              </div>
+
+              <div>
+                <strong>विषय:</strong> मजदूरी भुगतान / कार्यस्थल विवाद निवारण हेतु वैधानिक शिकायत (पंजीकरण आईडी: {selectedGrievanceForLetter.id})
+              </div>
+
+              <div>
+                <strong>महोदय/महोदया,</strong><br />
+                सविनय निवेदन है कि प्रार्थी <strong>{selectedGrievanceForLetter.workerName}</strong> (मोबाइल: {selectedGrievanceForLetter.workerPhone}) {selectedGrievanceForLetter.employerName ? `नियोक्ता/ठेकेदार ${selectedGrievanceForLetter.employerName} के अधीन` : ''} {selectedGrievanceForLetter.workplaceLocation || 'कार्यस्थल'} पर कार्यरत रहा है।
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-slate-200">
+                <strong>शिकायत का मुख्य विवरण:</strong><br />
+                {selectedGrievanceForLetter.description}
+              </div>
+
+              <div>
+                यह कृत्य <strong>मजदूरी संहिता 2019 (Code on Wages, 2019) की धारा 14 एवं 15</strong> तथा <strong>व्यावसायिक सुरक्षा संहिता 2020</strong> के वैधानिक प्रावधानों का खुला उल्लंघन है।
+              </div>
+
+              <div>
+                अतः श्रीमान से विनम्र प्रार्थना है कि उक्त मामले में अविलंब संज्ञान लेकर नियोक्ता को बकाया राशि एवं वैधानिक 2x ओवरटाइम का भुगतान करने हेतु नोटिस जारी करने की कृपा करें।
+              </div>
+
+              <div className="pt-3 border-t flex justify-between items-end">
+                <div>
+                  <strong>प्रार्थी के हस्ताक्षर:</strong> ....................................<br />
+                  नाम: {selectedGrievanceForLetter.workerName}<br />
+                  मोबाइल: {selectedGrievanceForLetter.workerPhone}
+                </div>
+                <div className="text-right text-[10px] text-slate-400">
+                  श्रम साथी AI द्वारा जनरेटेड विधिक प्रारूप
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="mt-4 flex items-center justify-between pt-2 border-t">
+              <span className="text-xs text-slate-500 font-mono">
+                हेल्पलाइन: 14434
+              </span>
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                >
+                  प्रिंट / PDF सुरक्षित करें
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedGrievanceForLetter(null)}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold transition-all"
+                >
+                  बंद करें
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

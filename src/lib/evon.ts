@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+
 /**
  * Multi-Provider Conversational AI Integration Service for SHRAMA SATHI AI
  * 
@@ -31,16 +34,30 @@ export interface EvonChatResponse {
   latencyMs: number;
 }
 
-const EVON_API_KEY = process.env.EVON_API_KEY;
-const EVON_API_URL = process.env.EVON_API_URL || 'https://api.gnani.ai/v1/evon/chat/completions';
-const EVON_MODEL = process.env.EVON_MODEL || 'evon-v3.3';
+/**
+ * Dynamically resolves environment variables from process.env or .env on disk.
+ */
+function getLiveEnv(name: string, fallback: string = ''): string {
+  let val = process.env[name];
+  if (val && val.trim() !== '') {
+    return val.trim().replace(/^["']|["']$/g, '');
+  }
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  try {
+    const envPath = path.join(process.cwd(), '.env');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      const match = content.match(new RegExp(`^${name}\\s*=\\s*(.*)$`, 'm'));
+      if (match) {
+        val = match[1].trim().replace(/^["']|["']$/g, '');
+        process.env[name] = val;
+        return val;
+      }
+    }
+  } catch {}
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_API_BASE = process.env.OPENAI_API_BASE || 'https://api.openai.com/v1';
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  return fallback;
+}
 
 export function getActiveAiProvider(): {
   provider: 'evon' | 'gemini' | 'openai' | 'statutory_rules';
@@ -53,26 +70,34 @@ export function getActiveAiProvider(): {
     openai: boolean;
   };
 } {
-  const evonConfigured = Boolean(EVON_API_KEY && EVON_API_KEY.trim() !== '');
-  const geminiConfigured = Boolean(GEMINI_API_KEY && GEMINI_API_KEY.trim() !== '');
-  const openaiConfigured = Boolean(OPENAI_API_KEY && OPENAI_API_KEY.trim() !== '');
+  const evonKey = getLiveEnv('EVON_API_KEY');
+  const geminiKey = getLiveEnv('GEMINI_API_KEY');
+  const openaiKey = getLiveEnv('OPENAI_API_KEY');
+
+  const evonConfigured = Boolean(evonKey && evonKey.trim() !== '');
+  const geminiConfigured = Boolean(geminiKey && geminiKey.trim() !== '');
+  const openaiConfigured = Boolean(openaiKey && openaiKey.trim() !== '');
+
+  const evonModel = getLiveEnv('EVON_MODEL', 'evon-v3.3');
+  const geminiModel = getLiveEnv('GEMINI_MODEL', 'gemini-1.5-flash');
+  const openaiModel = getLiveEnv('OPENAI_MODEL', 'gpt-4o-mini');
 
   let provider: 'evon' | 'gemini' | 'openai' | 'statutory_rules' = 'statutory_rules';
-  let model = `${EVON_MODEL} (Statutory Rules Grounded)`;
-  let endpoint = 'Local Statutory Rules Engine';
+  let model = `${evonModel} (Statutory Rules Grounded)`;
+  let endpoint = 'Local Statutory Rules Engine (4 Labour Codes)';
 
   if (evonConfigured) {
     provider = 'evon';
-    model = EVON_MODEL;
-    endpoint = EVON_API_URL;
+    model = evonModel;
+    endpoint = getLiveEnv('EVON_API_URL', 'https://api.gnani.ai/v1/evon/chat/completions');
   } else if (geminiConfigured) {
     provider = 'gemini';
-    model = GEMINI_MODEL;
+    model = geminiModel;
     endpoint = 'https://generativelanguage.googleapis.com';
   } else if (openaiConfigured) {
     provider = 'openai';
-    model = OPENAI_MODEL;
-    endpoint = OPENAI_API_BASE;
+    model = openaiModel;
+    endpoint = getLiveEnv('OPENAI_API_BASE', 'https://api.openai.com/v1');
   }
 
   return {
@@ -106,18 +131,29 @@ export async function callEvonLLM(payload: EvonChatRequest): Promise<EvonChatRes
   const startTime = Date.now();
   const providerInfo = getActiveAiProvider();
 
+  const evonKey = getLiveEnv('EVON_API_KEY');
+  const evonUrl = getLiveEnv('EVON_API_URL', 'https://api.gnani.ai/v1/evon/chat/completions');
+  const evonModel = getLiveEnv('EVON_MODEL', 'evon-v3.3');
+
+  const geminiKey = getLiveEnv('GEMINI_API_KEY');
+  const geminiModel = getLiveEnv('GEMINI_MODEL', 'gemini-1.5-flash');
+
+  const openaiKey = getLiveEnv('OPENAI_API_KEY');
+  const openaiBase = getLiveEnv('OPENAI_API_BASE', 'https://api.openai.com/v1');
+  const openaiModel = getLiveEnv('OPENAI_MODEL', 'gpt-4o-mini');
+
   // 1. Try Gnani AI Evon if configured
-  if (providerInfo.provider === 'evon' && EVON_API_KEY) {
+  if (providerInfo.provider === 'evon' && evonKey) {
     try {
-      const response = await fetch(EVON_API_URL, {
+      const response = await fetch(evonUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${EVON_API_KEY}`,
+          'Authorization': `Bearer ${evonKey}`,
           'X-Client': 'ShramaSathi-AI-v1',
         },
         body: JSON.stringify({
-          model: EVON_MODEL,
+          model: evonModel,
           messages: payload.messages,
           temperature: payload.temperature ?? 0.3,
           max_tokens: payload.maxTokens ?? 800,
@@ -133,7 +169,7 @@ export async function callEvonLLM(payload: EvonChatRequest): Promise<EvonChatRes
         return {
           success: true,
           text: replyText,
-          model: data?.model || EVON_MODEL,
+          model: data?.model || evonModel,
           provider: 'evon',
           isSimulatedFallback: false,
           latencyMs,
@@ -145,9 +181,9 @@ export async function callEvonLLM(payload: EvonChatRequest): Promise<EvonChatRes
   }
 
   // 2. Try Google Gemini API if configured
-  if (providerInfo.provider === 'gemini' && GEMINI_API_KEY) {
+  if (providerInfo.provider === 'gemini' && geminiKey) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiKey}`;
       const systemInstruction = payload.messages.find(m => m.role === 'system')?.content || '';
       const conversationHistory = payload.messages
         .filter(m => m.role !== 'system')
@@ -177,7 +213,7 @@ export async function callEvonLLM(payload: EvonChatRequest): Promise<EvonChatRes
         return {
           success: true,
           text: replyText,
-          model: `Google Gemini (${GEMINI_MODEL})`,
+          model: `Google Gemini (${geminiModel})`,
           provider: 'gemini',
           isSimulatedFallback: false,
           latencyMs,
@@ -189,16 +225,16 @@ export async function callEvonLLM(payload: EvonChatRequest): Promise<EvonChatRes
   }
 
   // 3. Try OpenAI / Groq if configured
-  if (providerInfo.provider === 'openai' && OPENAI_API_KEY) {
+  if (providerInfo.provider === 'openai' && openaiKey) {
     try {
-      const res = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
+      const res = await fetch(`${openaiBase}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${openaiKey}`,
         },
         body: JSON.stringify({
-          model: OPENAI_MODEL,
+          model: openaiModel,
           messages: payload.messages,
           temperature: payload.temperature ?? 0.3,
           max_tokens: payload.maxTokens ?? 800,
@@ -213,7 +249,7 @@ export async function callEvonLLM(payload: EvonChatRequest): Promise<EvonChatRes
         return {
           success: true,
           text: replyText,
-          model: data?.model || OPENAI_MODEL,
+          model: data?.model || openaiModel,
           provider: 'openai',
           isSimulatedFallback: false,
           latencyMs,
@@ -229,7 +265,7 @@ export async function callEvonLLM(payload: EvonChatRequest): Promise<EvonChatRes
   return {
     success: true,
     text: fallbackResponse,
-    model: `${EVON_MODEL} (Statutory Rules Grounded)`,
+    model: `${evonModel} (Statutory Rules Grounded)`,
     provider: 'statutory_rules',
     isSimulatedFallback: true,
     latencyMs: Date.now() - startTime,

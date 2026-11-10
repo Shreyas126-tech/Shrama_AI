@@ -285,9 +285,19 @@ export default function WageCalculator() {
                 </span>
               </div>
             </div>
+            {/* Print Wage Slip Button */}
+            <div className="mt-4 pt-3 border-t border-emerald-200/60 flex justify-end">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center space-x-1.5 shadow-sm transition-all"
+              >
+                <span>वेतन पर्ची प्रिंट करें (Print Slip)</span>
+              </button>
+            </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-emerald-100 text-[11px] text-slate-500 space-y-1">
+          <div className="mt-4 pt-3 border-t border-emerald-100 text-[11px] text-slate-500 space-y-1">
             <div className="flex items-center text-emerald-800 font-semibold">
               <ShieldCheck className="w-3.5 h-3.5 mr-1" />
               मजदूरी संहिता 2019 धारा 14 संरक्षण

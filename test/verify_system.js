@@ -62,6 +62,32 @@ async function runTests() {
     assert(!process.env.EVON_API_KEY || typeof process.env.EVON_API_KEY === 'string', 'Evon key is server-side');
     assert(!process.env.TIMBRE_API_KEY || typeof process.env.TIMBRE_API_KEY === 'string', 'Timbre key is server-side');
 
+    // Test 7: Worker creation and upsert validation
+    const testWorker = await prisma.worker.upsert({
+      where: { phone: '9999988888' },
+      update: { name: 'सुरेश यादव (Suresh Yadav)', dailyWage: 750 },
+      create: { name: 'सुरेश यादव (Suresh Yadav)', phone: '9999988888', dailyWage: 750, occupation: 'Carpenter' },
+    });
+    assert(testWorker && testWorker.name.includes('सुरेश'), 'Worker profile create/upsert verified in Prisma');
+
+    // Test 8: WageEntry creation and statutory consistency
+    const wageEntry = await prisma.wageEntry.create({
+      data: {
+        workerId: testWorker.id,
+        workHours: 8,
+        standardRate: 750,
+        overtimeHours: 2,
+        overtimeRate: (750 / 8) * 2,
+        grossWage: 750 + 2 * ((750 / 8) * 2),
+        netWage: 750 + 2 * ((750 / 8) * 2),
+        paymentStatus: 'PENDING',
+      },
+    });
+    assert(wageEntry && wageEntry.overtimeRate === 187.5, 'WageEntry persisted with exact Section 14 rate (187.5/hr)');
+
+    // Clean up test entry
+    await prisma.wageEntry.delete({ where: { id: wageEntry.id } });
+
     console.log('====================================================');
     console.log(`📊 Test Summary: ${passed} Passed, ${failed} Failed`);
     console.log('====================================================');

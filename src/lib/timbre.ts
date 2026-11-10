@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+
 /**
  * Gnani.ai / Vachana Timbre v3.0 Text-to-Speech (TTS) Integration Service
  * 
@@ -36,13 +39,39 @@ const LANGUAGE_VOICE_MAP: Record<string, { langTag: string; defaultVoice: string
   en: { langTag: 'en-IN', defaultVoice: 'Tarika' },
 };
 
+/**
+ * Dynamically resolves environment variables from process.env or .env on disk.
+ * This guarantees updates without requiring a full server reboot.
+ */
+export function getLiveEnv(name: string, fallback: string = ''): string {
+  let val = process.env[name];
+  if (val && val.trim() !== '') {
+    return val.trim().replace(/^["']|["']$/g, '');
+  }
+
+  try {
+    const envPath = path.join(process.cwd(), '.env');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      const match = content.match(new RegExp(`^${name}\\s*=\\s*(.*)$`, 'm'));
+      if (match) {
+        val = match[1].trim().replace(/^["']|["']$/g, '');
+        process.env[name] = val;
+        return val;
+      }
+    }
+  } catch {}
+
+  return fallback;
+}
+
 export function getTimbreStatus(): { configured: boolean; defaultVoice: string; endpoint: string; model: string } {
-  const key = process.env.TIMBRE_API_KEY;
+  const key = getLiveEnv('TIMBRE_API_KEY');
   return {
     configured: Boolean(key && key.trim() !== ''),
-    defaultVoice: process.env.TIMBRE_DEFAULT_VOICE || 'Shivani',
-    endpoint: process.env.TIMBRE_API_URL || 'https://api.vachana.ai/api/v1/tts/inference',
-    model: process.env.TIMBRE_MODEL || 'timbre-v3.0',
+    defaultVoice: getLiveEnv('TIMBRE_DEFAULT_VOICE', 'Shivani'),
+    endpoint: getLiveEnv('TIMBRE_API_URL', 'https://api.vachana.ai/api/v1/tts/inference'),
+    model: getLiveEnv('TIMBRE_MODEL', 'timbre-v3.0'),
   };
 }
 
@@ -53,12 +82,12 @@ export async function synthesizeWithTimbre(
   payload: TimbreSynthesizeRequest
 ): Promise<TimbreSynthesizeResponse> {
   const startTime = Date.now();
-  const TIMBRE_API_KEY = process.env.TIMBRE_API_KEY;
-  const TIMBRE_API_URL = process.env.TIMBRE_API_URL || 'https://api.vachana.ai/api/v1/tts/inference';
-  const TIMBRE_MODEL = process.env.TIMBRE_MODEL || 'timbre-v3.0';
+  const TIMBRE_API_KEY = getLiveEnv('TIMBRE_API_KEY');
+  const TIMBRE_API_URL = getLiveEnv('TIMBRE_API_URL', 'https://api.vachana.ai/api/v1/tts/inference');
+  const TIMBRE_MODEL = getLiveEnv('TIMBRE_MODEL', 'timbre-v3.0');
 
   const langConfig = LANGUAGE_VOICE_MAP[payload.language || 'hi'] || LANGUAGE_VOICE_MAP['hi'];
-  const voice = payload.voiceId || process.env.TIMBRE_DEFAULT_VOICE || langConfig.defaultVoice;
+  const voice = payload.voiceId || getLiveEnv('TIMBRE_DEFAULT_VOICE', langConfig.defaultVoice);
 
   // 1. If key is missing
   if (!TIMBRE_API_KEY || TIMBRE_API_KEY.trim() === '') {
@@ -170,6 +199,48 @@ export async function synthesizeWithTimbre(
       latencyMs,
     };
   }
+}
+
+/**
+ * Generate a clean 440Hz acoustic harmonic chime as a valid WAV audio data URI
+ */
+function generateSovereignChimeWav(): string {
+  const sampleRate = 8000;
+  const duration = 0.5;
+  const numSamples = Math.floor(sampleRate * duration);
+  const headerByteLength = 44;
+  const dataByteLength = numSamples * 2;
+  const buffer = Buffer.alloc(headerByteLength + dataByteLength);
+
+  // RIFF chunk descriptor
+  buffer.write('RIFF', 0);
+  buffer.writeUInt32LE(36 + dataByteLength, 4);
+  buffer.write('WAVE', 8);
+
+  // fmt sub-chunk
+  buffer.write('fmt ', 12);
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(1, 22);
+  buffer.writeUInt32LE(sampleRate, 24);
+  buffer.writeUInt32LE(sampleRate * 2, 28);
+  buffer.writeUInt16LE(2, 32);
+  buffer.writeUInt16LE(16, 34);
+
+  // data sub-chunk
+  buffer.write('data', 36);
+  buffer.writeUInt32LE(dataByteLength, 40);
+
+  // Sine wave sample (523.25 Hz - C5 chord)
+  for (let i = 0; i < numSamples; i++) {
+    const t = i / sampleRate;
+    const decay = Math.exp(-t * 5);
+    const sample = Math.sin(2 * Math.PI * 523.25 * t) * decay * 0.4;
+    const intSample = Math.floor(sample * 32767);
+    buffer.writeInt16LE(intSample, headerByteLength + i * 2);
+  }
+
+  return buffer.toString('base64');
 }
 
 /**

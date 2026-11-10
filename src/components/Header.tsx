@@ -105,3 +105,4 @@ export default function Header({ currentLang, onSelectLanguage }: HeaderProps) {
     </>
   );
 }
+

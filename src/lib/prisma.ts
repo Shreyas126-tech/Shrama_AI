@@ -20,3 +20,4 @@ export async function checkDatabaseConnection(): Promise<{ ok: boolean; message:
     return { ok: false, message: `Database connection failed: ${error?.message || error}` };
   }
 }
+

@@ -89,3 +89,4 @@ model AssistantInteraction {
   confidenceScore Float?
   createdAt       DateTime     @default(now())
 }
+

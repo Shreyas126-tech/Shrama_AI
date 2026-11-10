@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: shrama-sathi-ai
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm install && npm run render-build
+    startCommand: npm run start
+    healthCheckPath: /api/status
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:./dev.db
+      - key: TIMBRE_API_KEY
+        sync: false
+      - key: TIMBRE_API_URL
+        value: https://api.vachana.ai/api/v1/tts/inference
+      - key: TIMBRE_DEFAULT_VOICE
+        value: Shivani
+      - key: TIMBRE_MODEL
+        value: timbre-v3.0
+      - key: EVON_API_KEY
+        sync: false
+      - key: EVON_API_URL
+        value: https://api.gnani.ai/v1/evon/chat/completions
+      - key: EVON_MODEL
+        value: evon-v3.3
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-1.5-flash
+      - key: NEXT_PUBLIC_APP_NAME
+        value: SHRAMA SATHI AI

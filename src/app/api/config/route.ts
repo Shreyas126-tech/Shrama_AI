@@ -16,8 +16,9 @@ export async function GET() {
       configured: timbre.configured,
       defaultVoice: timbre.defaultVoice,
       endpoint: timbre.endpoint,
+      model: timbre.model,
       maskedKey: process.env.TIMBRE_API_KEY
-        ? `${process.env.TIMBRE_API_KEY.slice(0, 4)}...${process.env.TIMBRE_API_KEY.slice(-4)}`
+        ? `${process.env.TIMBRE_API_KEY.slice(0, 8)}...${process.env.TIMBRE_API_KEY.slice(-6)}`
         : '',
     },
     evon: {
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
       timbreApiKey,
       timbreApiUrl,
       timbreVoice,
+      timbreModel,
       evonApiKey,
       evonApiUrl,
       evonModel,
@@ -74,6 +76,7 @@ export async function POST(req: NextRequest) {
     if (timbreApiKey !== undefined) updateEnvVar('TIMBRE_API_KEY', timbreApiKey.trim());
     if (timbreApiUrl !== undefined) updateEnvVar('TIMBRE_API_URL', timbreApiUrl.trim());
     if (timbreVoice !== undefined) updateEnvVar('TIMBRE_DEFAULT_VOICE', timbreVoice.trim());
+    if (timbreModel !== undefined) updateEnvVar('TIMBRE_MODEL', timbreModel.trim());
 
     if (evonApiKey !== undefined) updateEnvVar('EVON_API_KEY', evonApiKey.trim());
     if (evonApiUrl !== undefined) updateEnvVar('EVON_API_URL', evonApiUrl.trim());
@@ -98,4 +101,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

@@ -42,13 +42,13 @@ export async function GET() {
         status: evonStatus.allAvailable.evon ? 'READY' : 'PENDING_CREDENTIALS',
       },
       timbre: {
-        name: 'Gnani.ai Timbre TTS',
+        name: 'Gnani.ai Timbre v3.0 TTS',
         configured: timbreStatus.configured,
         defaultVoice: timbreStatus.defaultVoice,
         endpoint: timbreStatus.endpoint,
         status: timbreStatus.configured ? 'READY' : 'PENDING_CREDENTIALS',
         note: timbreStatus.configured
-          ? 'Live Gnani Timbre TTS connected.'
+          ? `Live Gnani Timbre v3.0 connected via ${timbreStatus.defaultVoice} voice.`
           : 'Server TIMBRE_API_KEY is pending. Web Speech API playback is active.',
       },
     },

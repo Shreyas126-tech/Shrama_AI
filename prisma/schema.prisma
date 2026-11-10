@@ -1,0 +1,91 @@
+// Prisma schema for SHRAMA SATHI AI
+// Supports SQLite by default for seamless local running; switchable to PostgreSQL via DATABASE_URL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Worker {
+  id               String       @id @default(cuid())
+  name             String
+  phone            String?      @unique
+  language         String       @default("hi") // hi, kn, te, ta, mr, bn, en
+  state            String?
+  district         String?
+  occupation       String?      // Construction, Domestic Worker, Agriculture, Factory, Gig/Delivery, etc.
+  dailyWage        Float?
+  eShramCardNumber String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  grievances       Grievance[]
+  wageEntries      WageEntry[]
+}
+
+model Grievance {
+  id                String       @id @default(cuid())
+  workerId          String?
+  workerName        String
+  workerPhone       String
+  category          String       // WAGE_THEFT, UNSAFE_CONDITIONS, DENIAL_OF_LEAVE, HARASSMENT, ACCIDENT_COMPENSATION, OTHER
+  title             String
+  description       String
+  employerName      String?
+  workplaceLocation String?
+  urgency           String       @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  status            String       @default("PENDING") // PENDING, INVESTIGATING, RESOLVED, ESCALATED
+  resolutionNotes   String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  worker            Worker?      @relation(fields: [workerId], references: [id])
+}
+
+model WelfareScheme {
+  id                 String       @id @default(cuid())
+  code               String       @unique
+  title              String
+  titleHindi         String
+  category           String       // SOCIAL_SECURITY, PENSION, HEALTH, HOUSING, EDUCATION, ACCIDENT
+  targetAudience     String       // e.g. "Unorganized construction workers", "Domestic helpers"
+  eligibilitySummary String
+  benefitsSummary    String
+  documentsNeeded    String
+  officialPortalUrl  String?
+  createdAt          DateTime     @default(now())
+}
+
+model WageEntry {
+  id              String       @id @default(cuid())
+  workerId        String
+  date            DateTime     @default(now())
+  workHours       Float        @default(8.0)
+  standardRate    Float
+  overtimeHours   Float        @default(0.0)
+  overtimeRate    Float        @default(0.0)
+  grossWage       Float
+  epfDeduction    Float        @default(0.0)
+  esicDeduction   Float        @default(0.0)
+  netWage         Float
+  paymentStatus   String       @default("PENDING") // PAID, PENDING, DISPUTED
+  notes           String?
+  createdAt       DateTime     @default(now())
+  worker          Worker       @relation(fields: [workerId], references: [id])
+}
+
+model AssistantInteraction {
+  id              String       @id @default(cuid())
+  sessionId       String
+  language        String       @default("hi")
+  modality        String       @default("TEXT") // TEXT, VOICE
+  userPrompt      String
+  aiResponse      String
+  evonModel       String?
+  timbreVoice     String?
+  audioGenerated  Boolean      @default(false)
+  confidenceScore Float?
+  createdAt       DateTime     @default(now())
+}

@@ -16,10 +16,12 @@ export default function Header({ currentLang, onSelectLanguage }: HeaderProps) {
     dbOk: boolean;
     evonOk: boolean;
     timbreOk: boolean;
+    activeAi: string;
   }>({
     dbOk: true,
     evonOk: false,
     timbreOk: false,
+    activeAi: 'Statutory Rules',
   });
 
   useEffect(() => {
@@ -28,8 +30,9 @@ export default function Header({ currentLang, onSelectLanguage }: HeaderProps) {
       .then((data) => {
         setSysStatus({
           dbOk: Boolean(data?.integrations?.prisma?.connected),
-          evonOk: Boolean(data?.integrations?.evon?.configured),
+          evonOk: Boolean(data?.integrations?.aiEngine?.configured),
           timbreOk: Boolean(data?.integrations?.timbre?.configured),
+          activeAi: data?.integrations?.aiEngine?.activeProvider || 'Statutory Rules',
         });
       })
       .catch(() => {});
@@ -42,15 +45,23 @@ export default function Header({ currentLang, onSelectLanguage }: HeaderProps) {
           
           {/* Logo & Title */}
           <div className="flex items-center space-x-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20 ring-2 ring-orange-200">
-              <HardHat className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-md shadow-orange-500/20 ring-2 ring-orange-400/50 flex-shrink-0 bg-slate-900">
+              <img
+                src="/images/avatar_sathi.jpg"
+                alt="Shrama Sathi AI Companion"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback if image fails
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
             </div>
             <div>
               <div className="flex items-center space-x-2">
                 <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
                   श्रम साथी <span className="text-orange-600">AI</span>
                 </h1>
-                <span className="text-[11px] font-bold uppercase tracking-wider bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full border border-orange-200">
+                <span className="text-[11px] font-bold uppercase tracking-wider bg-orange-100 text-orange-800 px-2.5 py-0.5 rounded-full border border-orange-200">
                   Shrama Sathi
                 </span>
               </div>
@@ -80,8 +91,8 @@ export default function Header({ currentLang, onSelectLanguage }: HeaderProps) {
                 <span className={`px-1.5 py-0.5 rounded font-bold ${sysStatus.dbOk ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
                   Prisma
                 </span>
-                <span className={`px-1.5 py-0.5 rounded font-bold ${sysStatus.evonOk ? 'bg-indigo-100 text-indigo-800' : 'bg-amber-100 text-amber-800'}`}>
-                  Evon
+                <span className={`px-1.5 py-0.5 rounded font-bold uppercase ${sysStatus.evonOk ? 'bg-indigo-100 text-indigo-800' : 'bg-amber-100 text-amber-800'}`}>
+                  {sysStatus.activeAi}
                 </span>
                 <span className={`px-1.5 py-0.5 rounded font-bold ${sysStatus.timbreOk ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
                   Timbre
@@ -105,4 +116,3 @@ export default function Header({ currentLang, onSelectLanguage }: HeaderProps) {
     </>
   );
 }
-

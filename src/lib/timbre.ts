@@ -3,7 +3,7 @@
  * 
  * Timbre is Gnani AI's proprietary speech synthesis engine supporting Indian vernacular languages.
  * Credentials remain strictly server-side.
- * Reports actual integration status; never returns fabricated audio.
+ * Reports actual integration status; handles binary audio, JSON responses, and client fallback.
  */
 
 export interface TimbreSynthesizeRequest {
@@ -51,7 +51,7 @@ export async function synthesizeWithTimbre(
       success: false,
       voiceUsed: voice,
       isSimulatedFallback: true,
-      error: 'TIMBRE_API_KEY is not configured in server environment. Client-side Web Speech API will be used for audible playback.',
+      error: 'TIMBRE_API_KEY is not configured in server environment. Client-side Web Speech API will provide natural voice playback.',
       latencyMs: Date.now() - startTime,
     };
   }
@@ -62,6 +62,7 @@ export async function synthesizeWithTimbre(
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${TIMBRE_API_KEY}`,
+        'token': TIMBRE_API_KEY,
         'X-Client': 'ShramaSathi-AI-v1',
       },
       body: JSON.stringify({
@@ -81,21 +82,37 @@ export async function synthesizeWithTimbre(
       return {
         success: false,
         voiceUsed: voice,
-        isSimulatedFallback: false,
+        isSimulatedFallback: true,
         error: `Gnani Timbre API error ${response.status}: ${errorText}`,
         latencyMs,
       };
     }
 
+    const contentType = response.headers.get('content-type') || 'audio/mpeg';
+
+    if (contentType.includes('application/json')) {
+      const data = await response.json();
+      const base64Str = data.audio || data.audioContent || data.data || data.base64;
+      if (base64Str) {
+        return {
+          success: true,
+          audioBase64: base64Str,
+          contentType: 'audio/mpeg',
+          voiceUsed: voice,
+          isSimulatedFallback: false,
+          latencyMs,
+        };
+      }
+    }
+
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const audioBase64 = buffer.toString('base64');
-    const contentType = payload.audioFormat === 'wav' ? 'audio/wav' : 'audio/mpeg';
 
     return {
       success: true,
       audioBase64,
-      contentType,
+      contentType: payload.audioFormat === 'wav' ? 'audio/wav' : 'audio/mpeg',
       voiceUsed: voice,
       isSimulatedFallback: false,
       latencyMs,
@@ -105,10 +122,9 @@ export async function synthesizeWithTimbre(
     return {
       success: false,
       voiceUsed: voice,
-      isSimulatedFallback: false,
+      isSimulatedFallback: true,
       error: error?.message || String(error),
       latencyMs,
     };
   }
 }
-

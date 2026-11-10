@@ -24,15 +24,22 @@ export async function GET() {
         connected: dbStatus.ok,
         message: dbStatus.message,
       },
-      evon: {
-        name: 'Gnani.ai Evon LLM',
+      aiEngine: {
+        activeProvider: evonStatus.provider,
         configured: evonStatus.configured,
         model: evonStatus.model,
         endpoint: evonStatus.endpoint,
-        status: evonStatus.configured ? 'READY' : 'PENDING_CREDENTIALS',
-        note: evonStatus.configured 
-          ? 'Live Gnani Evon API connected.'
-          : 'Server EVON_API_KEY is not set. Grounded statutory labour rule engine is active.',
+        allAvailable: evonStatus.allAvailable,
+        status: evonStatus.configured ? 'READY' : 'STATUTORY_RULES_ACTIVE',
+        note: evonStatus.configured
+          ? `Live AI connected via ${evonStatus.provider.toUpperCase()} (${evonStatus.model}).`
+          : 'Grounded statutory Indian labour rule engine is active (4 Labour Codes).',
+      },
+      evon: {
+        name: 'Gnani.ai Evon LLM',
+        configured: Boolean(evonStatus.allAvailable.evon),
+        model: 'evon-v3.3',
+        status: evonStatus.allAvailable.evon ? 'READY' : 'PENDING_CREDENTIALS',
       },
       timbre: {
         name: 'Gnani.ai Timbre TTS',
@@ -42,9 +49,8 @@ export async function GET() {
         status: timbreStatus.configured ? 'READY' : 'PENDING_CREDENTIALS',
         note: timbreStatus.configured
           ? 'Live Gnani Timbre TTS connected.'
-          : 'Server TIMBRE_API_KEY is not set. Client-side vernacular speech synthesis is active.',
+          : 'Server TIMBRE_API_KEY is pending. Web Speech API playback is active.',
       },
     },
   });
 }
-

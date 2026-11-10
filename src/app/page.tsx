@@ -7,13 +7,28 @@ import WageCalculator from '@/components/WageCalculator';
 import SchemeFinder from '@/components/SchemeFinder';
 import GrievanceTracker from '@/components/GrievanceTracker';
 import WorkerCard from '@/components/WorkerCard';
+import MinimumWageDirectory from '@/components/MinimumWageDirectory';
 import InteractiveMediaModal from '@/components/InteractiveMediaModal';
 import { TRANSLATIONS } from '@/lib/translations';
-import { Bot, Calculator, Award, AlertOctagon, Sparkles, Shield, HeartHandshake, BookOpen, Play, CreditCard, ChevronRight, CheckCircle2, PhoneCall } from 'lucide-react';
+import {
+  Bot,
+  Calculator,
+  Award,
+  AlertOctagon,
+  Sparkles,
+  Shield,
+  HeartHandshake,
+  BookOpen,
+  Play,
+  CreditCard,
+  Scale,
+  PhoneCall,
+  ArrowRight
+} from 'lucide-react';
 
 export default function Home() {
   const [currentLang, setCurrentLang] = useState('hi');
-  const [activeTab, setActiveTab] = useState<'chat' | 'card' | 'wage' | 'schemes' | 'grievance'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'minwage' | 'wage' | 'card' | 'schemes' | 'grievance'>('chat');
   const [showVideoModal, setShowVideoModal] = useState(false);
 
   const t = TRANSLATIONS[currentLang] || TRANSLATIONS['hi'];
@@ -27,11 +42,11 @@ export default function Home() {
       color: 'text-orange-500',
     },
     {
-      id: 'card' as const,
-      label: 'डिजिटल श्रमिक कार्ड',
-      sublabel: 'Smart Worker ID Card',
-      icon: CreditCard,
-      color: 'text-amber-500',
+      id: 'minwage' as const,
+      label: 'न्यूनतम मजदूरी दरें',
+      sublabel: 'Statutory Wage Directory',
+      icon: Scale,
+      color: 'text-indigo-500',
     },
     {
       id: 'wage' as const,
@@ -39,6 +54,13 @@ export default function Home() {
       sublabel: t.tabs.wage.sub,
       icon: Calculator,
       color: 'text-emerald-500',
+    },
+    {
+      id: 'card' as const,
+      label: 'डिजिटल श्रमिक कार्ड',
+      sublabel: 'Smart Worker ID Card',
+      icon: CreditCard,
+      color: 'text-amber-500',
     },
     {
       id: 'schemes' as const,
@@ -135,7 +157,6 @@ export default function Home() {
                   alt="Dignified Indian Workers empowered by Shrama Sathi AI"
                   className="w-full h-80 sm:h-96 object-cover transition-transform duration-700 group-hover:scale-105"
                   onError={(e) => {
-                    // Fallback
                     (e.target as HTMLElement).style.display = 'none';
                   }}
                 />
@@ -211,15 +232,24 @@ export default function Home() {
           </div>
         )}
 
-        {activeTab === 'card' && (
+        {activeTab === 'minwage' && (
           <div>
-            <WorkerCard />
+            <MinimumWageDirectory
+              onSelectRate={() => setActiveTab('wage')}
+              onReportDispute={() => setActiveTab('grievance')}
+            />
           </div>
         )}
 
         {activeTab === 'wage' && (
           <div>
             <WageCalculator />
+          </div>
+        )}
+
+        {activeTab === 'card' && (
+          <div>
+            <WorkerCard />
           </div>
         )}
 
